@@ -1,17 +1,20 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const mongoose = require('mongoose');
 const graphqlHttp = require("express-graphql");
-const { buildSchema } = require("graphql");
+const {
+    buildSchema
+} = require("graphql");
+const Event = require('./models/event')
 
 const app = express();
-const events = [];
 app.use(bodyParser.json());
 const port = process.env.PORT || 3030;
 
 app.use(
-  "/graphql",
-  graphqlHttp({
-    schema: buildSchema(`
+    "/graphql",
+    graphqlHttp({
+        schema: buildSchema(`
         type Event {
             _id : ID!
             title : String!
@@ -41,31 +44,40 @@ app.use(
         }
         
         `),
-    rootValue: {
-      events: () => {
-        return events;
-      },
-      createEvent: args => {
-        let event = {
-          _id: Math.floor(Math.random() * 1000).toString(),
-          title: args.eventInput.title,
-          price: args.eventInput.price,
-          description: args.eventInput.description,
-          date: args.eventInput.date
-        };
-        events.push(event);
-        return event;
-      }
-    },
-    graphiql: true
-  })
+        rootValue: {
+            events: () => {
+                return Event.find();
+            },
+            createEvent: args => {
+                let event = new Event({
+                    title: args.eventInput.title,
+                    price: args.eventInput.price,
+                    description: args.eventInput.description,
+                    date: new Date(args.eventInput.date)
+                })
+                return event.save()
+                    .then((res) => {
+                        return {
+                            ...res._doc
+                        }
+                    })
+                    .catch(err => console.log(err));
+            }
+        },
+        graphiql: true
+    })
 );
 
 app.get("/home", (req, res) => {
-  res.statusCode = 200;
-  res.send("Hello boy!!");
+    res.statusCode = 200;
+    res.send("Hello boy!!");
 });
 
-app.listen(port, () => {
-  console.log(`application started on ${port}`);
-});
+mongoose.connect(`mongodb+srv://Chandra:NewPassword@cluster0-acnkx.mongodb.net/react-graphql-dev?retryWrites=true&w=majority`)
+    .then((res) => {
+        console.log(res);
+        app.listen(port, () => {
+            console.log(`application started on ${port}`);
+        });
+    })
+    .catch((err) => console.log(err))
