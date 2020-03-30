@@ -6,6 +6,7 @@ const {
     buildSchema
 } = require("graphql");
 const Event = require('./models/event')
+const User = require('./models/user');
 
 const app = express();
 app.use(bodyParser.json());
@@ -21,6 +22,19 @@ app.use(
             price : Float!
             description : String!
             date : String!
+            creator : User!
+        }
+
+        type User {
+            _id : ID!
+            email : String!
+            password : String
+            createdEvents : [Event!]!
+        }
+
+        input CreateUserInput {
+            email : String!
+            password : String!
         }
 
         input EventInput {
@@ -36,6 +50,7 @@ app.use(
 
         type rootMutation {
             createEvent(eventInput : EventInput) : Event
+            createUser(userInput : CreateUserInput) : User
         }
 
         schema {
@@ -62,6 +77,17 @@ app.use(
                         }
                     })
                     .catch(err => console.log(err));
+            },
+            createUser: (args) => {
+                let user = new User({
+                    email: args.email,
+                    password: args.password
+                })
+                return user.save().then((res) => {
+                    return {
+                        ...res._doc
+                    }
+                }).catch(err => console.log(err))
             }
         },
         graphiql: true

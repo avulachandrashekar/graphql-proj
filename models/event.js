@@ -17,6 +17,10 @@ let eventSchema = new Schema({
     price: {
         type: Number,
         required: true
+    },
+    creator: {
+        _id: Schema.Types.ObjectId,
+        ref: 'User'
     }
 })
 
