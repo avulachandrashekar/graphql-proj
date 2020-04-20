@@ -1,11 +1,12 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 const graphqlHttp = require("express-graphql");
 const {
     buildSchema
 } = require("graphql");
-const Event = require('./models/event')
+const Event = require('./models/event');
 const User = require('./models/user');
 
 const app = express();
@@ -46,6 +47,7 @@ app.use(
 
         type rootQuery {
             events : [Event!]!
+            users : [User!]!
         }
 
         type rootMutation {
@@ -63,6 +65,9 @@ app.use(
             events: () => {
                 return Event.find();
             },
+            users: () => {
+                return User.find();
+            },
             createEvent: args => {
                 let event = new Event({
                     title: args.eventInput.title,
@@ -79,15 +84,21 @@ app.use(
                     .catch(err => console.log(err));
             },
             createUser: (args) => {
-                let user = new User({
-                    email: args.email,
-                    password: args.password
-                })
-                return user.save().then((res) => {
-                    return {
-                        ...res._doc
-                    }
-                }).catch(err => console.log(err))
+                return bcrypt.hash(args.userInput.password, 12)
+                    .then(hashedPass => {
+                        let user = new User({
+                            email: args.userInput.email,
+                            password: hashedPass
+                        });
+                        return user.save();
+                    })
+                    .then(user => {
+                        return {
+                            ...user._doc,
+                            _id: user.id
+                        }
+                    })
+                    .catch(err => console.log(err))
             }
         },
         graphiql: true
@@ -100,10 +111,8 @@ app.get("/home", (req, res) => {
 });
 
 mongoose.connect(`mongodb+srv://Chandra:NewPassword@cluster0-acnkx.mongodb.net/react-graphql-dev?retryWrites=true&w=majority`)
-    .then((res) => {
-        console.log(res);
-        app.listen(port, () => {
-            console.log(`application started on ${port}`);
-        });
+    .then(response => {
+        console.log("successfully connected to mongodb...");
+        app.listen(port, () => console.log(`application started on ${port}`))
     })
-    .catch((err) => console.log(err))
+    .catch(err => console.log(err))

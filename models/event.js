@@ -19,7 +19,7 @@ let eventSchema = new Schema({
         required: true
     },
     creator: {
-        _id: Schema.Types.ObjectId,
+        type: Schema.Types.ObjectId,
         ref: 'User'
     }
 })
