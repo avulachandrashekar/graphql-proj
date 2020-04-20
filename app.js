@@ -84,7 +84,16 @@ app.use(
                     .catch(err => console.log(err));
             },
             createUser: (args) => {
-                return bcrypt.hash(args.userInput.password, 12)
+                return User.findOne({
+                        email: args.userInput.email
+                    })
+                    .then(user => {
+                        if (user) {
+                            throw new Error("User already exists.")
+                        } else {
+                            return bcrypt.hash(args.userInput.password, 12)
+                        }
+                    })
                     .then(hashedPass => {
                         let user = new User({
                             email: args.userInput.email,
@@ -98,7 +107,9 @@ app.use(
                             _id: user.id
                         }
                     })
-                    .catch(err => console.log(err))
+                    .catch(err => {
+                        throw err
+                    })
             }
         },
         graphiql: true
