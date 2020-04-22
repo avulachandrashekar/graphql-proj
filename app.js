@@ -59,7 +59,6 @@ app.use(
             query: rootQuery
             mutation: rootMutation
         }
-        
         `),
         rootValue: {
             events: () => {
@@ -78,38 +77,34 @@ app.use(
                 return event.save()
                     .then((res) => {
                         return {
-                            ...res._doc
+                            ...res._doc,
+                            _id: res._doc.id,
+                            creator: user(res._doc.creator)
                         }
                     })
                     .catch(err => console.log(err));
             },
-            createUser: (args) => {
-                return User.findOne({
+            createUser: async (args) => {
+                try {
+                    const prevUser = await User.findOne({
                         email: args.userInput.email
-                    })
-                    .then(user => {
-                        if (user) {
-                            throw new Error("User already exists.")
-                        } else {
-                            return bcrypt.hash(args.userInput.password, 12)
-                        }
-                    })
-                    .then(hashedPass => {
-                        let user = new User({
-                            email: args.userInput.email,
-                            password: hashedPass
-                        });
-                        return user.save();
-                    })
-                    .then(user => {
-                        return {
-                            ...user._doc,
-                            _id: user.id
-                        }
-                    })
-                    .catch(err => {
-                        throw err
-                    })
+                    });
+                    if (prevUser) {
+                        throw new Error("User already exists.")
+                    }
+                    const hashdPassword = await bcrypt.hash(args.userInput.password, 12)
+                    let user = new User({
+                        email: args.userInput.email,
+                        password: hashdPassword
+                    });
+                    const createdUser = await user.save();
+                    return {
+                        ...createdUser._doc,
+                        _id: createdUser.id
+                    }
+                } catch (err) {
+                    throw err
+                }
             }
         },
         graphiql: true
